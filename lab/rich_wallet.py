@@ -68,28 +68,32 @@ def fetch_account_info_test():
 
 # Mock-up function for fetching data - replace this with your actual fetching logic
 def fetch_account_info():
-    # Simulating fetching data from gate.io
+    res = get_data()
     return {
         "details": {
-            "delivery": {"currency": "USDT", "amount": "0", "unrealised_pnl": "0"},
-            "finance": {"currency": "USDT", "amount": "528.468025"},
-            "futures": {"currency": "USDT", "amount": "891.79848731", "unrealised_pnl": "-120.563000000044"},
-            "margin": {"currency": "USDT", "amount": "0", "borrowed": "0"},
-            "options": {"currency": "USDT", "amount": "0", "unrealised_pnl": "0"},
-            "payment": {"currency": "USDT", "amount": "0"},
-            "quant": {"currency": "USDT", "amount": "0"},
-            "spot": {"currency": "USDT", "amount": "61.35376662"}
+            "delivery": {"currency": "USDT", "amount": res["details"]["delivery"]["amount"], "unrealised_pnl": res["details"]["delivery"]["unrealised_pnl"]},
+            "finance": {"currency": "USDT", "amount": res["details"]["finance"]["amount"]},
+            "futures": {"currency": "USDT", "amount": res["details"]["futures"]["amount"], "unrealised_pnl": res["details"]["futures"]["unrealised_pnl"]},
+            "margin": {"currency": "USDT", "amount": res["details"]["margin"]["amount"], "borrowed": res["details"]["margin"]["borrowed"]},
+            "options": {"currency": "USDT", "amount": res["details"]["options"]["amount"], "unrealised_pnl": res["details"]["options"]["unrealised_pnl"]},
+            "payment": {"currency": "USDT", "amount": res["details"]["payment"]["amount"]},
+            "quant": {"currency": "USDT", "amount": res["details"]["quant"]["amount"]},
+            "spot": {"currency": "USDT", "amount": res["details"]["spot"]["amount"]}
         },
         "total": {
-            "amount": "1481.62027893",
-            "borrowed": "0",
-            "currency": "USDT",
-            "unrealised_pnl": "-120.563000000044"
+            "amount": res["total"]["amount"],
+            "borrowed": res["total"]["borrowed"],
+            "currency": res["total"]["currency"],
+            "unrealised_pnl": res["total"]["unrealised_pnl"]
         }
     }
 
 def display_account_info(account_info):
     console = Console()
+    
+    # Add a column for input your name:
+    # name = input("Enter your name: ")
+    # console.print(f"Hello, {name}! Here's your account information:")
 
     details_table = Table(show_header=True, header_style="bold magenta", box=box.DOUBLE_EDGE)
     details_table.add_column("Section 📂", style="dim", width=12)
@@ -107,7 +111,7 @@ def display_account_info(account_info):
             f"{pnl_emoji} {info.get('unrealised_pnl', 'N/A')}"  # Not all sections have unrealised_pnl
         )
 
-    console.print(Panel(details_table, title="[bold cyan]Account Details[/]", subtitle="Sections Overview", expand=False))
+    console.print(Panel(details_table, title=f"[bold cyan]Account Details: Lucas Lee[/]", subtitle="Sections Overview", expand=False))
 
     total_info = account_info['total']
     total_table = Table(show_header=True, header_style="bold green", box=box.ROUNDED)
@@ -127,6 +131,6 @@ def display_account_info(account_info):
     console.print(Panel(total_table, title="[bold blue]Total Account Balance[/]", subtitle="Overall Financial Status", expand=False))
 
 if __name__ == "__main__":
-    account_info = fetch_account_info_test()  # Replace this with actual API call
+    account_info = fetch_account_info()
     display_account_info(account_info)
     # print(json.dumps(account_info))
