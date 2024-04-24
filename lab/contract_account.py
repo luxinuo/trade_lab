@@ -168,10 +168,10 @@ def display_account_info(account_info):
         positions_table = Table(
             show_header=True, header_style="bold blue", box=box.SQUARE
         )
-        positions_table.add_column("Contract📝", style="dim", width=20)
-        positions_table.add_column("Value💵", width=15)
-        positions_table.add_column("Realised PnL📘", width=15)
-        positions_table.add_column("Un PnL📗", width=15)
+        positions_table.add_column("Contract📝", style="dim", width=12)
+        positions_table.add_column("Value💵", width=20)
+        positions_table.add_column("Realised PnL📘", width=20)
+        positions_table.add_column("Un PnL📗", width=20)
         for contract, value, realised_pnl, unrealised_pnl in positions:
             value_emoji = "🔵" if float(value) > 0 else "🔴"
             realised_pnl_emoji = "🟢" if float(realised_pnl) >= 0 else "🔴"
@@ -193,7 +193,7 @@ def display_account_info(account_info):
         
 def fetch_btc_price():
     exchange = ccxt.binance()
-    current_time = datetime.utcnow()
+    current_time = datetime.now()
     past_time = current_time - timedelta(days=1)
     since = int(past_time.timestamp() * 1000)
     ohlcv = exchange.fetch_ohlcv('BTC/USDT', timeframe='1h', since=since)
@@ -210,9 +210,91 @@ def fetch_btc_price():
 #              volume=False,
 #              show_nontrading=True)
 
+def display_account_info_test(account_info):
+    console = Console()
+    
+    details_table = Table(show_header=True, header_style="bold magenta", box=box.DOUBLE_EDGE)
+    details_table.add_column("Section 📂", style="dim", width=12)
+    details_table.add_column("Currency 💵", min_width=10)
+    details_table.add_column("Amount 💰", min_width=15)
+    details_table.add_column("Unrealised PnL 📉", min_width=20)
+
+    for section, info in account_info['details'].items():
+        emoji = "🔵" if float(info['amount']) > 0 else "🔴"
+        pnl_emoji = "🟢" if float(info.get('unrealised_pnl', '0')) >= 0 else "🔴"
+        details_table.add_row(
+            f"{emoji} {section.capitalize()}",
+            info['currency'],
+            f"{emoji} {info['amount']}",
+            f"{pnl_emoji} {info.get('unrealised_pnl', 'N/A')}"
+        )
+
+    console.print(Panel(details_table, title=f"[bold cyan]Account Details", subtitle="Sections Overview", expand=False))
+
+    print("\n")
+    
+    total_info = account_info['total']
+    total_table = Table(show_header=True, header_style="bold green", box=box.ROUNDED)
+    total_table.add_column("Total Amount 💎", style="bold", min_width=15)
+    total_table.add_column("Borrowed 🏦", min_width=10)
+    total_table.add_column("Currency 💵", min_width=10)
+    total_table.add_column("Unrealised PnL 📊", min_width=15)
+    total_emoji = "🟢" if float(total_info['amount']) > 0 else "🔴"
+    pnl_emoji = "🟢" if float(total_info['unrealised_pnl']) >= 0 else "🔴"
+    total_table.add_row(
+        f"{total_emoji} {total_info['amount']}",
+        f"{total_emoji} {total_info['borrowed']}",
+        total_info['currency'],
+        f"{pnl_emoji} {total_info['unrealised_pnl']}"
+    )
+
+    console.print(Panel(total_table, title="[bold blue]Total Account Balance[/]", subtitle="Overall Financial Status", expand=False))
+    
+    print("\n")
+    positions = get_position_now()
+    if positions:
+        total_value = total_realised_pnl = total_unrealised_pnl = 0.0
+        positions_table = Table(
+            show_header=True, header_style="bold blue", box=box.SQUARE
+        )
+        positions_table.add_column("Contract📝", style="dim", width=12)
+        positions_table.add_column("Value💵", width=20)
+        positions_table.add_column("Realised PnL📘", width=20)
+        positions_table.add_column("Un PnL📗", width=20)
+        for contract, value, realised_pnl, unrealised_pnl in positions:
+            value_emoji = "🔵" if float(value) > 0 else "🔴"
+            realised_pnl_emoji = "🟢" if float(realised_pnl) >= 0 else "🔴"
+            unrealised_pnl_emoji = "🟢" if float(unrealised_pnl) >= 0 else "🔴"
+            positions_table.add_row(
+                f"{contract}",
+                f"{value_emoji} {value}",
+                f"{realised_pnl_emoji} {realised_pnl}",
+                f"{unrealised_pnl_emoji} {unrealised_pnl}",
+            )
+            total_value += float(value)
+            total_realised_pnl += float(realised_pnl)
+            total_unrealised_pnl += float(unrealised_pnl)
+        # Add the totals row with rounding to two decimal places
+        positions_table.add_row(
+            "Total",
+            f"🔷 {round(total_value, 2)}",  # Rounding total value to two decimal places
+            f"🔷 {round(total_realised_pnl, 2)}",  # Rounding total realized PnL to two decimal places
+            f"🔷 {round(total_unrealised_pnl, 2)}",  # Rounding total unrealized PnL to two decimal places
+        )
+
+        console.print(
+            Panel(
+                positions_table,
+                title="[bold green]Current Positions[/]",
+                subtitle="Futures Contracts Overview",
+                expand=False,
+            )
+        )
+
+
 if __name__ == "__main__":
     account_info = fetch_account_info()
-    display_account_info(account_info)
+    display_account_info_test(account_info)
     # df = fetch_btc_price()
     # plot_candlestick_mplfinance(df)
     # print(json.dumps(account_info))
