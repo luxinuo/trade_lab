@@ -21,6 +21,9 @@ import os
 from colorama import Fore, Back, Style, init
 
 
+pd.options.mode.chained_assignment = None  # default='warn'
+
+
 def gen_sign(method, url, query_string=None, payload_string=None):
     sign_path = "../cred/credentials.json"
 
@@ -342,13 +345,13 @@ def get_history_contract(url="/futures/usdt/my_trades"):
     return r.json()
 
 
-def get_candlesticks(contract_name: str = "BTC_USDT"):
+def get_candlesticks(contract_name: str = "BTC_USDT", n: int = 1, interval: str = "15m"):
     host = "https://api.gateio.ws"
     prefix = "/api/v4"
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
 
     url = "/futures/usdt/candlesticks"
-    query_param = f"contract={contract_name}&limit=10&interval=15m"
+    query_param = f"contract={contract_name}&limit=20&interval={interval}"
     r = requests.request(
         "GET", host + prefix + url + "?" + query_param, headers=headers
     )
@@ -368,18 +371,18 @@ def get_candlesticks(contract_name: str = "BTC_USDT"):
     ]
     df = df[["Symbol", "Datetime", "Volume", "Open", "Close", "Low", "High"]]
     df.set_index("Datetime", inplace=True)
-    return df.tail(1)
+    return df.tail(n)
 
 
 if __name__ == "__main__":
     account_info = fetch_account_info()
-    display_account_info(account_info, max_loops=1, sleep_seconds=1)
+    display_account_info(account_info, max_loops=3, sleep_seconds=1)
 
     print("Data Science Lab Testing here" + "---" * 22)
-    print("🤑Your History Order here...")
-
+    print("🤑Your Last 10 History Orders here...")
     # 忽略 SettingWithCopyWarning
     pd.options.mode.chained_assignment = None  # default='warn'
+
 
     host = "https://api.gateio.ws"
     prefix = "/api/v4"
@@ -407,10 +410,18 @@ if __name__ == "__main__":
         "pnl_fund",
     ]
     df_new = df[columns]
-    df_new["datetime_new"] = pd.to_datetime(df["time"], unit="s") + timedelta(hours=8)
-    print(df_new.head())
+    df_new['💵pnl'] = df_new['pnl']
+    df_new["datetime"] = pd.to_datetime(df["time"], unit="s") + timedelta(hours=8)
+    new_cols = ['contract', 'datetime', 'side', 'accum_size', 'max_size', 'long_price', 'short_price', '💵pnl', 'pnl_pnl', 'pnl_fee', 'pnl_fund']
+    #pnl pnl_pnl pnl_fee pnl_fund should be float and round to 2 decimal places
+    df_new['💵pnl'] = df_new['💵pnl'].astype(float).round(3)
+    df_new['pnl_pnl'] = df_new['pnl_pnl'].astype(float).round(3)
+    df_new['pnl_fee'] = df_new['pnl_fee'].astype(float).round(3)
+    df_new['pnl_fund'] = df_new['pnl_fund'].astype(float).round(3)
+    # print(df_new.info())
+    print(df_new[new_cols].head(n=5))
 
-    input_contract_name = input("Type in your Symbol: ") + "_USDT"
+    input_contract_name = input("Type in your Symbol: ").upper() + "_USDT"
 
     # history_data = get_history_contract()
     # df = pd.DataFrame(history_data)
@@ -418,17 +429,32 @@ if __name__ == "__main__":
     # print(df.head())
 
     print("Get candlesticks data...Your symbol is: ", input_contract_name)
+    
+    interval_val = "15m"
+    describe_n = 20
+    tmp_df = get_candlesticks(contract_name=input_contract_name, n=describe_n, interval=interval_val)
+    print(f"The Data of {input_contract_name} interval is: {interval_val}\nShowing {describe_n} records below: ------------------------------------------------------------")
+    print(tmp_df)
+    print('----' * 22)
 
-    for i in range(5):
-        tmp_df = get_candlesticks(contract_name=input_contract_name)
+    tmp_df['Open'] = tmp_df['Open'].astype(float)
+    tmp_df['Close'] = tmp_df['Close'].astype(float)
+    tmp_df['Low'] = tmp_df['Low'].astype(float)
+    tmp_df['High'] = tmp_df['High'].astype(float)
+    print(f"Statistic Describing price below: ------------------------------------------------------")
+    print(tmp_df[['Volume', 'Open', 'Close', 'Low', 'High']].describe())
+    print('----' * 22)
+    
+    for i in range(10):
+        tmp_df = get_candlesticks(contract_name=input_contract_name, n=1)
         print(tmp_df)
 
         init(autoreset=True)
         print(
             Back.CYAN
-            + f"{input_contract_name} current price 💰 is {tmp_df.Close.values[0]} and the Volume is: {tmp_df.Volume.values[0]}"
+            + f"{input_contract_name} Current 💰 Price is {tmp_df.Close.values[0]}, and the Current Volume is: {tmp_df.Volume.values[0]}"
         )
 
-        time.sleep(3.5)
+        time.sleep(1.5)
 
     print("Rich Young Lucas, I am so proud of you! " + "---" * 22)
